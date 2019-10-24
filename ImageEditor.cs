@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using Microsoft.WindowsAPICodePack.Dialogs;
 using System.IO;
 using System.Diagnostics;
+using OpenCvSharp;
 
 namespace imageEditor
 {
@@ -223,6 +224,45 @@ namespace imageEditor
         }
 
         // ============================== file 리사이즈 ================================
+        // 이미지 파일 이외의 
+        private void ReSize(string path, int width, int height)
+        {
+            // 사진파일이 아니면 Cv2.ImRead 에서 파일을 읽어오지 못하는 문제때문에 예외처리
+            try
+            {
+                if (type == "file")
+                {
+                    Mat src = Cv2.ImRead(path, ImreadModes.Color);
+                    Mat dst = new Mat();
+
+                    Cv2.Resize(src, dst, new OpenCvSharp.Size(width, height), 0, 0, InterpolationFlags.Cubic);
+                    Cv2.ImWrite(path, dst);
+
+                    MessageBox.Show("변경되었습니다.");
+                }
+                else
+                {
+                    System.IO.DirectoryInfo dir = new System.IO.DirectoryInfo(path);
+
+                    foreach (System.IO.FileInfo File in dir.GetFiles())
+                    {
+                        string fileName = File.Name.Substring(0, File.Name.Length);
+                        string fileUrl = path + @"\" + fileName;
+
+                        Mat src = Cv2.ImRead(fileUrl, ImreadModes.Color);
+                        Mat dst = new Mat();
+
+                        Cv2.Resize(src, dst, new OpenCvSharp.Size(width, height), 0, 0, InterpolationFlags.Cubic);
+                        Cv2.ImWrite(fileUrl, dst);
+                    }
+                    MessageBox.Show("변경되었습니다.");
+                }
+            }
+            catch
+            {
+                MessageBox.Show("사진 파일만 가능합니다.");
+            }
+        }
 
         // =================================== Form =====================================
         public Form1()
@@ -300,6 +340,32 @@ namespace imageEditor
             {
                 MessageBox.Show("입력되지 않은 항목이 있습니다.");
             }
+        }
+
+        // 텍스트 박스에 숫자만 입력 가능하게 지정
+        private void widthText_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (!(char.IsDigit(e.KeyChar) || e.KeyChar == Convert.ToChar(Keys.Back)))
+            {
+                e.Handled = true;
+            }
+        }
+
+        private void heightText_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (!(char.IsDigit(e.KeyChar) || e.KeyChar == Convert.ToChar(Keys.Back)))
+            {
+                e.Handled = true;
+            }
+        }
+
+        private void resizeBotton_Click(object sender, EventArgs e)
+        {
+            // string을 int형으로 변환
+            int width = int.Parse(widthText.Text);
+            int height = int.Parse(heightText.Text);
+
+            ReSize(path, width, height);
         }
     }
 }
