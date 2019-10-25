@@ -18,13 +18,13 @@ namespace imageEditor
     {
         // =================================== 전역 변수 =====================================
         // 경로
-        private static string path = null;
+        private static string _Path = null;
         // 폴더인지 파일인지 구분해주는 변수
-        private static string type = null;
+        private static string _Type = null;
 
         // =================================== 파일과 폴더 =====================================
         // 파일의 이름을 반환
-        private string FileName(string path)
+        private string GetFileName(string path)
         {
             // path를 \를 기준으로 잘라서 배열에 담는다.
             // split 함수를 사용하면 기본적으로 char 형으로 구분자를 사용해 문장을 자르기 때문에
@@ -37,7 +37,7 @@ namespace imageEditor
             return dirArray[num];
         }
         // 파일의 디렉토리 주소를 반환
-        private string FileDirUrl(string path)
+        private string GetFileDirUrl(string path)
         {
             string[] dirArray = path.Split(new string[] { @"\" }, StringSplitOptions.None);
 
@@ -50,7 +50,10 @@ namespace imageEditor
         }
 
         // =================================== 경로 불러오기 =====================================
-        // 폴더 또는 파일 불러오기
+ 
+        /// <summary>
+        /// 폴더 또는 파일 경로를 찾아줌
+        /// </summary>
         private void OpenDialog(bool check)
         {
             try 
@@ -63,8 +66,8 @@ namespace imageEditor
 
                 if (dialog.ShowDialog() == CommonFileDialogResult.Ok) ;
                 {
-                    path = dialog.FileName;
-                    textBox.Text = path;
+                    _Path = dialog.FileName;
+                    textBox.Text = _Path;
                 }
             }
             catch (Exception e)
@@ -75,7 +78,7 @@ namespace imageEditor
 
         // =================================== 리스트 출력 =====================================
         // 선택한 폴더 내의 파일 리스트에 출력
-        private void FileListBox(string path)
+        private void ShowFileListBox(string path)
         {
             beforeFileList.Items.Clear();
             afterFileList.Items.Clear();
@@ -91,7 +94,7 @@ namespace imageEditor
         }
 
         // 에디터 기능 적용 후 변경된 파일을 리스트에 보여줌
-        private void AfterFileList(string path)
+        private void ShowResultFileList(string path)
         {
             afterFileList.Items.Clear();
 
@@ -119,36 +122,41 @@ namespace imageEditor
             }
         }
 
-        // 파일 이름 변경
-        private void ReName(string beforeWord, string afterWord)
+        
+        /// <summary>
+        /// 파일 이름 변경
+        /// </summary>
+        /// <param name="beforeWord">이전 단어</param>
+        /// <param name="afterWord">변경된 단어</param>
+        private void FileReName(string beforeWord, string afterWord)
         {
             // 일치하는 단어가 있는지 확인하는 변수
             string check = "false";
 
             // type 별로 처리를 다르게함.
-            if (type == "file")
+            if (_Type == "file")
             {
                 afterFileList.Items.Clear();
 
-                if (FileName(path).Contains(beforeWord))
+                if (GetFileName(_Path).Contains(beforeWord))
                 {
-                    string newfileName = FileName(path).Replace(beforeWord, afterWord);
-                    string newFileUrl = FileDirUrl(path) + @"\" + newfileName;
+                    string newfileName = GetFileName(_Path).Replace(beforeWord, afterWord);
+                    string newFileUrl = GetFileDirUrl(_Path) + @"\" + newfileName;
 
-                    System.IO.File.Move(path, newFileUrl);
+                    System.IO.File.Move(_Path, newFileUrl);
                     check = "true";
-                    path = newFileUrl;
-                    afterFileList.Items.Add(FileName(path));
+                    _Path = newFileUrl;
+                    afterFileList.Items.Add(GetFileName(_Path));
                 }
             }
             else
             {
-                System.IO.DirectoryInfo dir = new System.IO.DirectoryInfo(path);
+                System.IO.DirectoryInfo dir = new System.IO.DirectoryInfo(_Path);
                 
                 foreach (System.IO.FileInfo File in dir.GetFiles())
                 {
                     string fileName = File.Name.Substring(0, File.Name.Length);
-                    string fileUrl = path + @"\" + fileName;
+                    string fileUrl = _Path + @"\" + fileName;
 
                     if (FileCheck(fileUrl))
                     {
@@ -157,7 +165,7 @@ namespace imageEditor
                         {
                             // 이름 변경
                             string newfileName = fileName.Replace(beforeWord, afterWord);
-                            string newFileUrl = path + @"\" + newfileName;
+                            string newFileUrl = _Path + @"\" + newfileName;
 
                             System.IO.File.Move(fileUrl, newFileUrl);
                             check = "true";
@@ -170,7 +178,7 @@ namespace imageEditor
                 }
                 if (check == "true")
                 {
-                    AfterFileList(path);
+                    ShowResultFileList(_Path);
                 }
             }
             if (check == "false")
@@ -179,47 +187,50 @@ namespace imageEditor
             }
         }
 
-        // 파일 이름 앞에 단어 추가
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="addWord"></param>
         private void AddName(string addWord)
         {
             string option = addOptionComboBox.SelectedItem.ToString();
 
-            if (type == "file")
+            if (_Type == "file")
             {
                 afterFileList.Items.Clear();
 
-                string newfileUrl = FileDirUrl(path) + @"\" + addWord + FileName(path);
+                string newfileUrl = GetFileDirUrl(_Path) + @"\" + addWord + GetFileName(_Path);
                 if (option == "이름 뒤")
                 {
-                    newfileUrl = FileDirUrl(path) + @"\" + FileName(path) + addWord;
+                    newfileUrl = GetFileDirUrl(_Path) + @"\" + GetFileName(_Path) + addWord;
                 }
 
-                System.IO.File.Move(path, newfileUrl);
+                System.IO.File.Move(_Path, newfileUrl);
 
-                Debug.WriteLine(path);
-                path = newfileUrl;
-                Debug.WriteLine(path);
-                afterFileList.Items.Add(FileName(path));
+                Debug.WriteLine(_Path);
+                _Path = newfileUrl;
+                Debug.WriteLine(_Path);
+                afterFileList.Items.Add(GetFileName(_Path));
             }
             else
             {
-                System.IO.DirectoryInfo dir = new System.IO.DirectoryInfo(path);
+                System.IO.DirectoryInfo dir = new System.IO.DirectoryInfo(_Path);
 
                 foreach (System.IO.FileInfo File in dir.GetFiles())
                 {
                     string fileName = File.Name.Substring(0, File.Name.Length);
-                    string fileUrl = path + @"\" + fileName;
+                    string fileUrl = _Path + @"\" + fileName;
                     // default값은 이름 앞
-                    string newfileUrl = path + @"\" + addWord + fileName;
+                    string newfileUrl = _Path + @"\" + addWord + fileName;
 
                     if (option == "이름 뒤")
                     {
-                        newfileUrl = path + @"\" + fileName + addWord;
+                        newfileUrl = _Path + @"\" + fileName + addWord;
                     }
 
                     System.IO.File.Move(fileUrl, newfileUrl);
                 }
-                AfterFileList(path);
+                ShowResultFileList(_Path);
             }
         }
 
@@ -230,7 +241,7 @@ namespace imageEditor
             // 사진파일이 아니면 Cv2.ImRead 에서 파일을 읽어오지 못하는 문제때문에 예외처리
             try
             {
-                if (type == "file")
+                if (_Type == "file")
                 {
                     Mat src = Cv2.ImRead(path, ImreadModes.Color);
                     Mat dst = new Mat();
@@ -277,18 +288,18 @@ namespace imageEditor
         {
             try
             {
-                type = "file";
+                _Type = "file";
 
                 beforeFileList.Items.Clear();
                 afterFileList.Items.Clear();
 
                 OpenDialog(false);
 
-                beforeFileList.Items.Add(FileName(path));
+                beforeFileList.Items.Add(GetFileName(_Path));
             }
             catch
             {
-                path = null;
+                _Path = null;
             }
                 
         }
@@ -298,14 +309,14 @@ namespace imageEditor
         {
             try
             {
-                type = "folder";
+                _Type = "folder";
 
                 OpenDialog(true);
-                FileListBox(path);
+                ShowFileListBox(_Path);
             }
             catch
             {
-                path = null;
+                _Path = null;
             }
         }
 
@@ -318,18 +329,18 @@ namespace imageEditor
             // 단어를 찾아서 변경&추가하기
             if (before != "" && after != "" && add != "")
             {
-                ReName(before, after);
+                FileReName(before, after);
                 AddName(add);
             }
             // 단어만 찾아서 변경(특정 단어를 지우려고 하는 경우)
             else if (before != "" && after == "" && add == "")
             {
-                ReName(before, after);
+                FileReName(before, after);
             }
             // 단어만 찾아서 변경
             else if (before != "" && after != "" && add == "")
             {
-                ReName(before, after);
+                FileReName(before, after);
             }
             // 단어를 추가
             else if (before == "" && after == "" && add != "")
@@ -365,7 +376,7 @@ namespace imageEditor
             int width = int.Parse(widthText.Text);
             int height = int.Parse(heightText.Text);
 
-            ReSize(path, width, height);
+            ReSize(_Path, width, height);
         }
     }
 }
