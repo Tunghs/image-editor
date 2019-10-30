@@ -23,7 +23,12 @@ namespace imageEditor
         private static string _Type = null;
 
         // =================================== 파일과 폴더 =====================================
-        // 파일의 이름을 반환
+
+        /// <summary>
+        /// 경로에 파일이름이 포함 된 경우 파일 이름을 반환함
+        /// </summary>
+        /// <param name="path">경로</param>
+        /// <returns></returns>
         private string GetFileName(string path)
         {
             // path를 \를 기준으로 잘라서 배열에 담는다.
@@ -36,7 +41,12 @@ namespace imageEditor
 
             return dirArray[num];
         }
-        // 파일의 디렉토리 주소를 반환
+
+        /// <summary>
+        /// 경로에 파일 이름이 포함 된 경우 파일 이름 빼고 경로만 반환함.
+        /// </summary>
+        /// <param name="path">경로</param>
+        /// <returns></returns>
         private string GetFileDirUrl(string path)
         {
             string[] dirArray = path.Split(new string[] { @"\" }, StringSplitOptions.None);
@@ -52,8 +62,10 @@ namespace imageEditor
         // =================================== 경로 불러오기 =====================================
  
         /// <summary>
-        /// 폴더 또는 파일 경로를 찾아줌
+        /// 폴더 or 파일을 선택하는 dialog
+        /// check 값을 받아 폴더를 선택할지 파일을 선택할지 결정.
         /// </summary>
+        /// <param name="check"></param>
         private void OpenDialog(bool check)
         {
             try 
@@ -62,7 +74,7 @@ namespace imageEditor
 
                 CommonOpenFileDialog dialog = new CommonOpenFileDialog();
                 dialog.InitialDirectory = "C:\\";
-                dialog.IsFolderPicker = check;   // 파일 or 폴더만 선택할 수 있도록 설정
+                dialog.IsFolderPicker = check;
 
                 if (dialog.ShowDialog() == CommonFileDialogResult.Ok) ;
                 {
@@ -109,7 +121,46 @@ namespace imageEditor
         }
 
         // =================================== 파일 이름 관련 기능 =====================================
-        // 폴더 안에 파일이 있는지 확인
+
+        /// <summary>
+        /// 파일 이름 관련 기능 선택
+        /// </summary>
+        /// <param name="before">이전 단어</param>
+        /// <param name="after">변경 단어</param>
+        /// <param name="add">추가 단어</param>
+        private void SelectReFunction(string before, string after, string add)
+        {
+            // 단어를 찾아서 변경&추가하기
+            if (before != "" && after != "" && add != "")
+            {
+                FileReName(before, after);
+                AddName(add);
+            }
+            // 단어만 찾아서 변경(특정 단어를 지우려고 하는 경우)
+            else if (before != "" && after == "" && add == "")
+            {
+                FileReName(before, after);
+            }
+            // 단어만 찾아서 변경
+            else if (before != "" && after != "" && add == "")
+            {
+                FileReName(before, after);
+            }
+            // 단어를 추가
+            else if (before == "" && after == "" && add != "")
+            {
+                AddName(add);
+            }
+            else
+            {
+                MessageBox.Show("입력되지 않은 항목이 있습니다.");
+            }
+        }
+
+        /// <summary>
+        /// 해당 경로에 파일이 존재하는지 확인.
+        /// </summary>
+        /// <param name="fileUrl">파일의 경로</param>
         private bool FileCheck(string fileUrl)
         {
             if (System.IO.File.Exists(fileUrl))
@@ -122,12 +173,11 @@ namespace imageEditor
             }
         }
 
-        
         /// <summary>
         /// 파일 이름 변경
         /// </summary>
         /// <param name="beforeWord">이전 단어</param>
-        /// <param name="afterWord">변경된 단어</param>
+        /// <param name="afterWord">변경 단어</param>
         private void FileReName(string beforeWord, string afterWord)
         {
             // 일치하는 단어가 있는지 확인하는 변수
@@ -188,9 +238,9 @@ namespace imageEditor
         }
 
         /// <summary>
-        /// 
+        /// 파일 이름 추가
         /// </summary>
-        /// <param name="addWord"></param>
+        /// <param name="addWord">추가할 단어</param>
         private void AddName(string addWord)
         {
             string option = addOptionComboBox.SelectedItem.ToString();
@@ -234,8 +284,21 @@ namespace imageEditor
             }
         }
 
-        // ============================== file 리사이즈 ================================
-        // 이미지 파일 이외의 
+        // =================================== 파일 섞기 =====================================
+        private void AutoSet(string path)
+        {
+
+        }
+
+
+        // =================================== 이미지 처리 =====================================
+
+        /// <summary>
+        /// 이미지 리사이즈
+        /// </summary>
+        /// <param name="path">경로</param>
+        /// <param name="width">너비</param>
+        /// <param name="height">높이</param>
         private void ReSize(string path, int width, int height)
         {
             // 사진파일이 아니면 Cv2.ImRead 에서 파일을 읽어오지 못하는 문제때문에 예외처리
@@ -243,7 +306,7 @@ namespace imageEditor
             {
                 if (_Type == "file")
                 {
-                    Mat src = Cv2.ImRead(path, ImreadModes.Color);
+                    Mat src = Cv2.ImRead(path, ImreadModes.Unchanged);
                     Mat dst = new Mat();
 
                     Cv2.Resize(src, dst, new OpenCvSharp.Size(width, height), 0, 0, InterpolationFlags.Cubic);
@@ -260,11 +323,75 @@ namespace imageEditor
                         string fileName = File.Name.Substring(0, File.Name.Length);
                         string fileUrl = path + @"\" + fileName;
 
-                        Mat src = Cv2.ImRead(fileUrl, ImreadModes.Color);
+                        Mat src = Cv2.ImRead(fileUrl, ImreadModes.Unchanged);
                         Mat dst = new Mat();
 
                         Cv2.Resize(src, dst, new OpenCvSharp.Size(width, height), 0, 0, InterpolationFlags.Cubic);
                         Cv2.ImWrite(fileUrl, dst);
+                    }
+                    MessageBox.Show("변경되었습니다.");
+                }
+            }
+            catch
+            {
+                MessageBox.Show("사진 파일만 가능합니다.");
+            }
+        }
+
+        /// <summary>
+        /// 이미지 자르기
+        /// </summary>
+        /// <param name="path">경로</param>
+        /// <param name="width">폭</param>
+        /// <param name="height">높이</param>
+        private void Crop(string path, int width, int height)
+        {
+            try
+            {
+                if (_Type == "file")
+                {
+                    // 매트릭스 형태로 파일을 불러온 후 크롭을 위해 비트맵 이미지로 변환
+                    Mat src = Cv2.ImRead(path, ImreadModes.Color);
+                    Bitmap bitSrc = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(src);
+
+                    int x = 0 + (width / 2);
+                    int y = 0 + (height / 2);
+                    int newWidth = bitSrc.Width - width;
+                    int newHeight = bitSrc.Height - height;
+
+                    // (x 위치값, y의 위치값, 새로 적용할 width, 새로 적용할 height)
+                    bitSrc = bitSrc.Clone(new Rectangle(x, y, newWidth, newHeight),
+                             System.Drawing.Imaging.PixelFormat.DontCare);
+
+                    Mat changeSrc = OpenCvSharp.Extensions.BitmapConverter.ToMat(bitSrc);
+
+                    Cv2.ImWrite(path, changeSrc);
+                    MessageBox.Show("변경되었습니다.");
+                }
+                else
+                {
+                    System.IO.DirectoryInfo dir = new System.IO.DirectoryInfo(path);
+
+                    foreach (System.IO.FileInfo File in dir.GetFiles())
+                    {
+                        string fileName = File.Name.Substring(0, File.Name.Length);
+                        string fileUrl = path + @"\" + fileName;
+
+                        Mat src = Cv2.ImRead(fileUrl, ImreadModes.Color);
+                        Bitmap bitSrc = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(src);
+
+                        int x = 0 + (width / 2);
+                        int y = 0 + (height / 2);
+                        int newWidth = bitSrc.Width - width;
+                        int newHeight = bitSrc.Height - height;
+
+                        // (x 위치값, y의 위치값, 새로 적용할 width, 새로 적용할 height)
+                        bitSrc = bitSrc.Clone(new Rectangle(x, y, newWidth, newHeight),
+                                 System.Drawing.Imaging.PixelFormat.DontCare);
+
+                        Mat changeSrc = OpenCvSharp.Extensions.BitmapConverter.ToMat(bitSrc);
+
+                        Cv2.ImWrite(fileUrl, changeSrc);
                     }
                     MessageBox.Show("변경되었습니다.");
                 }
@@ -283,8 +410,8 @@ namespace imageEditor
             addOptionComboBox.SelectedIndex = 0;
         }
 
-        // 버튼 클릭시 파일 경로를 가져옴.
-        private void openFile_Click(object sender, EventArgs e)
+        // 파일 경로
+        private void openFileBtn_Click(object sender, EventArgs e)
         {
             try
             {
@@ -301,11 +428,10 @@ namespace imageEditor
             {
                 _Path = null;
             }
-                
         }
 
-        // 버튼 클릭시 폴더 경로를 가져옴.
-        private void openFolder_Click(object sender, EventArgs e)
+        // 폴더 경로
+        private void openFolderBtn_Click(object sender, EventArgs e)
         {
             try
             {
@@ -320,63 +446,56 @@ namespace imageEditor
             }
         }
 
-        private void changeButton_Click(object sender, EventArgs e)
+        private void changeBtn_Click(object sender, EventArgs e)
         {
             string before = beforeWord.Text;
             string after = afterWord.Text;
             string add = addWord.Text;
 
-            // 단어를 찾아서 변경&추가하기
-            if (before != "" && after != "" && add != "")
-            {
-                FileReName(before, after);
-                AddName(add);
-            }
-            // 단어만 찾아서 변경(특정 단어를 지우려고 하는 경우)
-            else if (before != "" && after == "" && add == "")
-            {
-                FileReName(before, after);
-            }
-            // 단어만 찾아서 변경
-            else if (before != "" && after != "" && add == "")
-            {
-                FileReName(before, after);
-            }
-            // 단어를 추가
-            else if (before == "" && after == "" && add != "")
-            {
-                AddName(add);
-            }
-            else
-            {
-                MessageBox.Show("입력되지 않은 항목이 있습니다.");
-            }
+            SelectReFunction(before, after, add);
+        }
+
+        private void resizeBtn_Click(object sender, EventArgs e)
+        {
+            // string을 int형으로 변환
+            int width = int.Parse(resizeWidth.Text);
+            int height = int.Parse(this.resizeHeight.Text);
+
+            ReSize(_Path, width, height);
+        }
+
+        private void cropBtn_Click(object sender, EventArgs e)
+        {
+            string tWidth = cropWidth.Text;
+            string tHeight = cropHeight.Text;
+
+            if (tWidth == "") tWidth = "0";
+            if (tHeight == "") tHeight = "0";
+
+            int width = int.Parse(tWidth);
+            int height = int.Parse(tHeight);
+
+            Crop(_Path, width, height);
         }
 
         // 텍스트 박스에 숫자만 입력 가능하게 지정
         private void widthText_KeyPress(object sender, KeyPressEventArgs e)
         {
-            if (!(char.IsDigit(e.KeyChar) || e.KeyChar == Convert.ToChar(Keys.Back)))
-            {
-                e.Handled = true;
-            }
+            OnlyNum(e);
         }
 
         private void heightText_KeyPress(object sender, KeyPressEventArgs e)
         {
+            OnlyNum(e);
+        }
+
+        // 숫자만 입력 받게 해주는 함수.
+        private void OnlyNum(KeyPressEventArgs e)
+        {
             if (!(char.IsDigit(e.KeyChar) || e.KeyChar == Convert.ToChar(Keys.Back)))
             {
                 e.Handled = true;
             }
-        }
-
-        private void resizeBotton_Click(object sender, EventArgs e)
-        {
-            // string을 int형으로 변환
-            int width = int.Parse(widthText.Text);
-            int height = int.Parse(heightText.Text);
-
-            ReSize(_Path, width, height);
         }
     }
 }
