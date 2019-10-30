@@ -406,8 +406,12 @@ namespace imageEditor
         public Form1()
         {
             InitializeComponent();
-            // 콤보박스 기본값 설정
+            // 박스 기본값 설정
             addOptionComboBox.SelectedIndex = 0;
+            resizeWidth.SelectedText = "0";
+            resizeHeight.SelectedText = "0";
+            cropWidth.SelectedText = "0";
+            cropHeight.SelectedText = "0";
         }
 
         // 파일 경로
@@ -459,34 +463,25 @@ namespace imageEditor
         {
             // string을 int형으로 변환
             int width = int.Parse(resizeWidth.Text);
-            int height = int.Parse(this.resizeHeight.Text);
+            int height = int.Parse(resizeHeight.Text);
 
-            ReSize(_Path, width, height);
+            // 모두 입력해야 작동할 수 있게 변경.
+            if (width == 0 | height ==0)
+            {
+                MessageBox.Show("widht, height 값 모두 입력해주세요!");
+            }
+            else
+            {
+                ReSize(_Path, width, height);
+            }
         }
 
         private void cropBtn_Click(object sender, EventArgs e)
         {
-            string tWidth = cropWidth.Text;
-            string tHeight = cropHeight.Text;
-
-            if (tWidth == "") tWidth = "0";
-            if (tHeight == "") tHeight = "0";
-
-            int width = int.Parse(tWidth);
-            int height = int.Parse(tHeight);
+            int width = int.Parse(cropWidth.Text);
+            int height = int.Parse(cropHeight.Text);
 
             Crop(_Path, width, height);
-        }
-
-        // 텍스트 박스에 숫자만 입력 가능하게 지정
-        private void widthText_KeyPress(object sender, KeyPressEventArgs e)
-        {
-            OnlyNum(e);
-        }
-
-        private void heightText_KeyPress(object sender, KeyPressEventArgs e)
-        {
-            OnlyNum(e);
         }
 
         // 숫자만 입력 받게 해주는 함수.
@@ -496,6 +491,24 @@ namespace imageEditor
             {
                 e.Handled = true;
             }
+        }
+
+        // 텍스트 박스에 숫자만 입력 가능하게 지정
+        private void widthText_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            OnlyNum(e);
+        }
+        private void heightText_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            OnlyNum(e);
+        }
+        private void cropWidth_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            OnlyNum(e);
+        }
+        private void cropHeight_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            OnlyNum(e);
         }
     }
 }
