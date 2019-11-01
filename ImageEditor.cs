@@ -21,6 +21,8 @@ namespace imageEditor
         private static string _Path = null;
         // 폴더인지 파일인지 구분해주는 변수
         private static string _Type = null;
+        // 파일 분류시 저장할 경로
+        private static string _SaveFolderPath = null;
 
         // =================================== 파일과 폴더 =====================================
 
@@ -76,7 +78,7 @@ namespace imageEditor
                 dialog.InitialDirectory = "C:\\";
                 dialog.IsFolderPicker = check;
 
-                if (dialog.ShowDialog() == CommonFileDialogResult.Ok) ;
+                if (dialog.ShowDialog() == CommonFileDialogResult.Ok);
                 {
                     _Path = dialog.FileName;
                     textBox.Text = _Path;
@@ -85,6 +87,95 @@ namespace imageEditor
             catch (Exception e)
             {
                 MessageBox.Show("취소하셨습니다.");
+            }
+        }
+
+        private void OpenDialogSavePath(bool check)
+        {
+            try
+            {
+                SavePathTB.Clear();
+
+                CommonOpenFileDialog dialog = new CommonOpenFileDialog();
+                dialog.InitialDirectory = "C:\\";
+                dialog.IsFolderPicker = check;
+
+                if (dialog.ShowDialog() == CommonFileDialogResult.Ok) ;
+                {
+                    _SaveFolderPath = dialog.FileName;
+                    SavePathTB.Text = _SaveFolderPath;
+                }
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show("취소하셨습니다.");
+            }
+        }
+
+        // =================================== 하위폴더 및 파일 개수 =====================================
+
+        /// <summary>
+        /// 하위 디렉토리를 검색해서 리스트에 저장.
+        /// </summary>
+        /// <param name="path">지정한 경로</param>
+        private List<string> serchSubDir(string path)
+        {
+            List<string> dirPathList = new List<string>();
+
+            System.IO.DirectoryInfo dir = new System.IO.DirectoryInfo(path);
+            // 하위 디렉토리를 모두 검색하게 해주는 설정
+            DirectoryInfo[] allDir = dir.GetDirectories("*", SearchOption.AllDirectories);
+
+            if (dir.Exists)
+            {
+                foreach (System.IO.DirectoryInfo subDir in allDir)
+                {
+                    dirPathList.Add(subDir.FullName);
+                }
+                return dirPathList;
+            }
+            else
+            {
+                return dirPathList;
+            }
+        }
+
+        /// <summary>
+        /// 디렉토리 경로 포함 하위 디렉토리 파일의 개수를 보여줌.
+        /// </summary>
+        /// <param name="list"></param>
+        private void AllDirFileNum(List<string> list)
+        {
+            FileNumLB.Text = "-";
+
+            int fileNum = 0;
+
+            foreach (string dirPath in list)
+            {
+                System.IO.DirectoryInfo dir = new System.IO.DirectoryInfo(dirPath);
+
+                foreach (System.IO.FileInfo file in dir.GetFiles())
+                {
+                    fileNum++;
+                }
+            }
+            FileNumLB.Text = fileNum.ToString();
+        }
+
+        /// <summary>
+        /// SubDirPath에 하위 디렉토리의 절대경로를 보여줌
+        /// </summary>
+        /// <param name="list">하위 디렉토리 리스트</param>
+        private void ShowSubDirList(List<string> list)
+        {
+            SubDirPath.Items.Clear();
+
+            foreach (string subPath in list)
+            {
+                System.IO.DirectoryInfo dir = new System.IO.DirectoryInfo(subPath);
+                // 절대 경로를 보여주기 위함.
+                string AbsolutePath = dir.FullName.Replace(_Path, "");
+                SubDirPath.Items.Add(AbsolutePath);
             }
         }
 
@@ -284,10 +375,190 @@ namespace imageEditor
             }
         }
 
-        // =================================== 파일 섞기 =====================================
-        private void AutoSet(string path)
-        {
+        // =================================== 파일 분류 =====================================
 
+        /// <summary>
+        /// 이미지를 분류해서 넣기 위한 Set디렉토리 아래에 train, validation, test 디렉토리를 생성함.
+        /// </summary>
+        /// <param name="path">저장할 경로</param>
+        /// <returns></returns>
+        private bool CreateSubDir(string path)
+        {
+            string trainDir = "TrainSet";
+            string validationDir = "ValidationSet";
+            string testDir = "TestSet";
+
+            string setDir = "Set";
+
+            string dirPath = path + @"\" + setDir;
+            DirectoryInfo dir = new DirectoryInfo(dirPath);
+
+            if (dir.Exists == false)
+            {
+                dir.Create();
+
+                string setDirPath = path + @"\" + setDir;
+
+                // 서브 디렉토리를 생성한다.
+                string trainDirPath = setDirPath + @"\" + trainDir;
+                string valDirPath = setDirPath + @"\" + validationDir;
+                string testDirPath = setDirPath + @"\" + testDir;
+
+                List<string> subDirList = new List<string>();
+
+                subDirList.Add(trainDirPath);
+                subDirList.Add(valDirPath);
+                subDirList.Add(testDirPath);
+
+                foreach (string subdirPath in subDirList)
+                {
+                    DirectoryInfo subDir = new DirectoryInfo(subdirPath);
+
+                    if (subDir.Exists == false)
+                    {
+                        subDir.Create();
+                    }
+                }
+                return true;
+            }
+            else
+            {
+                MessageBox.Show("Set 폴더가 이미 존재합니다!!!");
+                return false;
+            }
+        }
+
+        private void AutoSet(string loadPath, string savePath, int trainWeight, int valWeight, int testWeight)
+        {
+            // set 디렉토리가 존재하지 않다면 실행.
+            if (CreateSubDir(savePath))
+            {
+                // 하위디렉토리 만큼 실행
+                foreach (string subDir in serchSubDir(loadPath))
+                {
+                    // 가중치 구하는 부분
+                    int fileNum = DirFileNum(subDir);
+                    float weight = (float)fileNum / ((float)trainWeight + (float)valWeight + (float)testWeight);
+
+                    float floatTrain = trainWeight * weight;
+                    float floatVal = valWeight * weight;
+                    float floatTest = testWeight * weight;
+
+                    int intTrain = (int)floatTrain + (fileNum - ((int)floatTrain + (int)floatVal + (int)floatTest));
+                    int intVal = (int)floatVal;
+                    int intTest = (int)floatTest;
+
+                    FileClassification(subDir, savePath, intTrain, intVal, intTest);
+                }
+
+                MessageBox.Show("생성");
+            }
+        }
+
+        /// <summary>
+        /// 디렉토리 내 파일 개수
+        /// </summary>
+        /// <param name="path">해당 디렉토리 경로</param>
+        /// <returns></returns>
+        private int DirFileNum(string path)
+        {
+            int fileNum = 0;
+
+            System.IO.DirectoryInfo dir = new System.IO.DirectoryInfo(path);
+            foreach (System.IO.FileInfo file in dir.GetFiles())
+            {
+                fileNum++;
+            }
+
+            return fileNum;
+        }
+
+        private void FileClassification(string dirPath, string savePath, int trainWeight, int valWeight, int testWeight)
+        {
+            // 해당 디렉토리 내 파일들의 리스트 생성
+            List<string> fileList = new List<string>();
+
+            System.IO.DirectoryInfo dir = new System.IO.DirectoryInfo(dirPath);
+            foreach (System.IO.FileInfo file in dir.GetFiles())
+            {
+                fileList.Add(file.FullName);
+            }
+
+            // train, validation, test 폴더에 넣을 파일들을 랜덤 추출해서 각자의 리스트에 저장
+            List<string> trainList = new List<string>();
+            List<string> valList = new List<string>();
+            List<string> testList = new List<string>();
+
+            trainList = RandomAddList(fileList, trainList, trainWeight);
+            fileList = DelList(fileList, trainList);
+
+            valList = RandomAddList(fileList, valList, valWeight);
+            fileList = DelList(fileList, valList);
+
+            testList = RandomAddList(fileList, testList, testWeight);
+            fileList = DelList(fileList, testList);
+
+            // 각 리스트에 저장된 파일들을 폴더로 이동
+            string trainPath = savePath + @"\Set\TrainSet\";
+            string valPath = savePath + @"\Set\ValidationSet\";
+            string testPath = savePath + @"\Set\TestSet\";
+
+            SaveFile(trainList, trainPath);
+            SaveFile(valList, valPath);
+            SaveFile(testList, testPath);
+        }
+
+        /// <summary>
+        /// 리스트 랜덤 추출
+        /// </summary>
+        /// <param name="originalList">기존 리스트</param>
+        /// <param name="setList">기존 리스트에서 랜덤으로 값을 뽑아 저장할 리스트</param>
+        /// <param name="num">값의 개수</param>
+        /// <returns></returns>
+        private List<string> RandomAddList(List<string> originalList, List<string> setList, int num)
+        {
+            var random = new Random();
+
+            for (int i = 0; i < num; i++)
+            {
+                int index = random.Next(originalList.Count);
+                setList.Add(originalList[index]);
+                originalList.Remove(originalList[index]);
+            }
+            return setList;
+        }
+
+        /// <summary>
+        /// originalList값이 setList의 값에 들어있다면 제거
+        /// </summary>
+        /// <param name="originalList"></param>
+        /// <param name="setList">제거할 값 리스트</param>
+        /// <returns></returns>
+        private List<string> DelList(List<string> originalList, List<string> setList)
+        {
+            foreach (string del in setList)
+            {
+                originalList.Remove(del);
+            }
+            return originalList;
+        }
+
+        /// <summary>
+        /// 리스트에 저장된 파일을 특정 경로로 이동
+        /// </summary>
+        /// <param name="list"></param>
+        /// <param name="savePath"></param>
+        private void SaveFile(List<string> list, string savePath)
+        {
+            foreach (string path in list)
+            {
+                string[] fileNameArray = path.Split(new string[] { @"\" }, StringSplitOptions.None);
+                int num = fileNameArray.Length - 1;
+                string newSavePath = savePath + fileNameArray[num];
+                Debug.WriteLine(path);
+                Debug.WriteLine(savePath);
+                System.IO.File.Move(path, newSavePath);
+            }
         }
 
 
@@ -412,6 +683,10 @@ namespace imageEditor
             resizeHeight.SelectedText = "0";
             cropWidth.SelectedText = "0";
             cropHeight.SelectedText = "0";
+
+            TrainTB.SelectedText = "0";
+            ValidationTB.SelectedText = "0";
+            TestTB.SelectedText = "0";
         }
 
         // 파일 경로
@@ -442,6 +717,8 @@ namespace imageEditor
                 _Type = "folder";
 
                 OpenDialog(true);
+                AllDirFileNum(serchSubDir(_Path));
+                ShowSubDirList(serchSubDir(_Path));
                 ShowFileListBox(_Path);
             }
             catch
@@ -482,6 +759,29 @@ namespace imageEditor
             int height = int.Parse(cropHeight.Text);
 
             Crop(_Path, width, height);
+        }
+
+        private void SavePathLoadBtn_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                OpenDialogSavePath(true);
+            }
+            catch
+            {
+                _SaveFolderPath = null;
+            }
+        }
+
+        private void ClassificationBtn_Click(object sender, EventArgs e)
+        {
+            int trainWeight = int.Parse(TrainTB.Text);
+            int valWeight = int.Parse(ValidationTB.Text);
+            int testWeight = int.Parse(TestTB.Text);
+
+            //3. 원래 경로 내 하위 디렉토리마다 파일들을 가중치만큼 지정한 set 파일 내 폴더들로 이동
+            serchSubDir(_Path);
+            AutoSet(_Path, _SaveFolderPath, trainWeight, valWeight, testWeight);
         }
 
         // 숫자만 입력 받게 해주는 함수.
