@@ -810,5 +810,17 @@ namespace imageEditor
         {
             OnlyNum(e);
         }
+        private void TrainTB_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            OnlyNum(e);
+        }
+        private void ValidationTB_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            OnlyNum(e);
+        }
+        private void TestTB_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            OnlyNum(e);
+        }
     }
 }
